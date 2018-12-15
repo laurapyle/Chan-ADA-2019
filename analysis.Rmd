@@ -1,0 +1,129 @@
+---
+title: "CGM in CF - Beta cell function outcomes"
+author: "Laura Pyle"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(Hmisc)
+library(knitr)
+
+
+source("C:\\Users\\pylell\\Documents\\GitHub\\General-code\\01_functions.r")
+source("C:\\Users\\pylell\\Documents\\GitHub\\General-code\\laura_functions.r")
+
+# read in OGTT data
+source("C:\\Users\\pylell\\Documents\\GitHub\\Chan-ADA-2019\\CGMInHealthyControls_R_2018-12-14_1906.r")
+data <- data[c("subject_id","min_30_insulin","min_0_insulin","min_30_glucose","lab_ogtt_fasting",
+               "min_30_c_peptide","min_0_c_peptide")]
+
+source("C:\\Users\\pylell\\Documents\\GitHub\\General-code\\temp_table1.r")
+
+# calculate beta cell function outcomes
+data$isi <- (data$min_30_insulin - data$min_0_insulin) / (data$min_30_glucose-data$lab_ogtt_fasting)
+data$isi_cpep <- (data$min_30_c_peptide - data$min_0_c_peptide) / (data$min_30_glucose-data$lab_ogtt_fasting)
+data$odi <- (1/data$min_0_insulin) * data$isi
+data$odi_cpep <- (1/data$min_0_c_peptide) * data$isi_cpep
+
+
+# read in other variables from primary outcome analysis
+alldata <- read.csv(file = "H:\\Endocrinology\\Chan\\Chan CF CGM\\Repeat primary analysis\\Data\\export_tim.csv")
+
+# merge datasets - first just figure out who is in which datasets
+a <- data[c("subject_id")]
+a$inogtt <- rep(1,nrow(a))
+b <- alldata[c("subject_id","group")]
+b$inredcap <- rep(1,nrow(b))
+ab <- merge(a,b,by="subject_id",all=TRUE)
+ab <- ab[ab$inredcap==1 & ab$inogtt==1,]
+ab <- ab[order(ab$subject_id),] 
+
+# merge full datasets
+data$inogtt <- rep(1,nrow(data))
+alldata$inredcap <- rep(1,nrow(alldata))
+alldata <- merge(alldata,data,by="subject_id")
+# keep only those who have non-missing odi
+alldata <- alldata[which(!is.na(alldata$odi) & alldata$odi != Inf),]
+#View(alldata[c("subject_id","group","min_30_insulin","min_0_insulin","min_30_glucose","lab_ogtt_fasting","min_30_c_peptide","min#_0_c_peptide","isi","isi_cpep","odi","odi_cpep")])
+
+ogttvars <- c("isi","isi_cpep","odi","odi_cpep")
+cgmvars <- c("min_sensor","max_sensor","average_sensor","avg_auc","excursions_200","excursions_140_day",
+             "excursions_200_day","excursions_over_140","percent_time_60","percent_time_70",
+             "percent_time_spent_140","time_spent_60","time_spent_70","time_spent_200","time_spent_min_140",
+             "time_spent_min_200","total_auc","standard_deviation","mage")
+tab1vars <- c("age", "race_ethnicity","gender","a1c","g_tube_feeds","fev1_percent","fvc","cf_pancreatic","tanner","first_bmiz")
+
+# labels
+label(alldata$age)="Age"
+label(alldata$race_ethnicity)="Race/ethnicity"
+label(alldata$gender)="Gender"
+label(alldata$a1c)="HbA1c"
+label(alldata$g_tube_feeds)="G-tube feeds"
+label(alldata$fev1_percent)="FEV-1 percent"
+label(alldata$fvc)="FVC"
+label(alldata$cf_pancreatic)="Pancreatic insufficiency"
+label(alldata$tanner)="Tanner stage"
+label(alldata$first_bmiz)="First BMI-Z"
+label(alldata$isi)="ISI"
+label(alldata$isi_cpep)="ISI C-peptide"
+label(alldata$odi)="oDI"
+label(alldata$odi_cpep)="oDI C-peptide"
+label(alldata$min_sensor)="Min sensor glucose"
+label(alldata$max_sensor)="Max sensor glucose"
+label(alldata$average_sensor)="Average sensor glucose"
+label(alldata$avg_auc)="Average AUC"
+label(alldata$excursions_200)="Excursions>200"
+label(alldata$excursions_140_day)="Excursions>140/day"
+label(alldata$excursions_200_day)="Excursions>200/day"
+label(alldata$excursions_over_140)="Excursions>140"
+label(alldata$percent_time_60)="% time <60"
+label(alldata$percent_time_70)="% time <70"
+label(alldata$percent_time_spent_140)="% time >140"
+label(alldata$time_spent_60)="Time spent <60"
+label(alldata$time_spent_70)="Time spent <70"
+label(alldata$time_spent_200)="Time spent >200"
+label(alldata$time_spent_min_140)="Time spent >140"
+label(alldata$time_spent_min_200)="Time spent >200"
+label(alldata$total_auc)="Total AUC"
+label(alldata$standard_deviation)="SD"
+label(alldata$mage)="MAGE"
+
+
+# ANALYSIS
+
+# table 1
+tab1 <- final_table(data=alldata,variables=tab1vars,group=alldata$group,margin=2,single=0,ron=2)
+
+# compare groups
+tab2 <- final_table(data=alldata,variables=c(ogttvars,cgmvars),group=alldata$group,margin=2,single=0,ron=2)
+
+# correlations
+
+
+
+```
+# Background
+
+
+# Methods
+
+
+
+# Results
+
+Table 1 shows baseline descriptive statistics by treatment group.
+
+```{r, results='asis',tidy=TRUE, echo=FALSE}
+kable(tab1,caption="Table 1.  Descriptive statistics by treatment group.  Statistics given are N(%), mean±SD, or median (25th %ile, 75th %ile).  * denotes that the Mannn-Whitney test was used, and ** denotes that Fisher's exact test was used.")
+```
+\
+
+Descriptive statistics for beta cell function outcomes and CGM outcomes are shown in Table 2.
+```{r, results='asis',tidy=TRUE, echo=FALSE}
+kable(tab2,caption="Table 2.  Descriptive statistics for beta cell function and CGM outcomes by treatment group.  Statistics given are N(%), mean±SD, or median (25th %ile, 75th %ile).  * denotes that the Mannn-Whitney test was used, and ** denotes that Fisher's exact test was used.")
+```
+\
+
