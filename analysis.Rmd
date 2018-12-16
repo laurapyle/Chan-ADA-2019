@@ -11,23 +11,20 @@ knitr::opts_chunk$set(echo = FALSE)
 library(Hmisc)
 library(knitr)
 
-
-source("C:\\Users\\pylell\\Documents\\GitHub\\General-code\\01_functions.r")
-source("C:\\Users\\pylell\\Documents\\GitHub\\General-code\\laura_functions.r")
-
 # read in OGTT data
 source("C:\\Users\\pylell\\Documents\\GitHub\\Chan-ADA-2019\\CGMInHealthyControls_R_2018-12-14_1906.r")
 data <- data[c("subject_id","min_30_insulin","min_0_insulin","min_30_glucose","lab_ogtt_fasting",
                "min_30_c_peptide","min_0_c_peptide")]
 
 source("C:\\Users\\pylell\\Documents\\GitHub\\General-code\\temp_table1.r")
+source("C:\\Users\\pylell\\Documents\\GitHub\\General-code\\01_functions.r")
+source("C:\\Users\\pylell\\Documents\\GitHub\\General-code\\laura_functions.r")
 
 # calculate beta cell function outcomes
 data$isi <- (data$min_30_insulin - data$min_0_insulin) / (data$min_30_glucose-data$lab_ogtt_fasting)
 data$isi_cpep <- (data$min_30_c_peptide - data$min_0_c_peptide) / (data$min_30_glucose-data$lab_ogtt_fasting)
 data$odi <- (1/data$min_0_insulin) * data$isi
 data$odi_cpep <- (1/data$min_0_c_peptide) * data$isi_cpep
-
 
 # read in other variables from primary outcome analysis
 alldata <- read.csv(file = "H:\\Endocrinology\\Chan\\Chan CF CGM\\Repeat primary analysis\\Data\\export_tim.csv")
@@ -91,6 +88,7 @@ label(alldata$total_auc)="Total AUC"
 label(alldata$standard_deviation)="SD"
 label(alldata$mage)="MAGE"
 
+npar <- nrow(alldata)
 
 # ANALYSIS
 
@@ -101,29 +99,44 @@ tab1 <- final_table(data=alldata,variables=tab1vars,group=alldata$group,margin=2
 tab2 <- final_table(data=alldata,variables=c(ogttvars,cgmvars),group=alldata$group,margin=2,single=0,ron=2)
 
 # correlations
-
-
+corr <- rcorr(as.matrix(alldata[, c(ogttvars,cgmvars)]), type = "pearson")
+corr <- flattenCorrMatrix(corr$r, corr$P)
+corr <- corr[corr$row %in% ogttvars & corr$column %in% cgmvars,]
 
 ```
 # Background
 
+The purpose of this analysis is to examine associations between beta cell function and CGM variables in healthy controls and participants with cystic fibrosis with normal glucose tolerance, impaired glucose tolerance, and CFRD.
 
 # Methods
 
+Participants who had both CGM data and OGTT data with 0, 30, and 120 minute timepoints available were included in this analysis. Beta cell function outcomes were calculated as follows:
 
+1) $ISI = (Insulin_{30} - Insulin_{0}) / (Glucose_{30} - Glucose_{0})$
+2) $ISI_{Cpep} = (Cpeptide_{30} - Cpeptide_{0}) / (Glucose_{30} - Glucose_{0})$
+3) $oDI = (1/Insulin_{0}) * ISI$
+4) $oDI_{Cpep} = (1/Cpeptide_{0}) * ISI_{Cpep}$
+
+The distributions of all variables were examined prior to analysis.  Groups were compared using ANOVA or the Wilcoxon test for continuous variables, and the chi-square or Fisher's exact test for categorical variables.  Pearson's correlation coefficient was used to test the association between beta cell function outcomes and CGM outcomes.
 
 # Results
 
-Table 1 shows baseline descriptive statistics by treatment group.
+There were `r npar` participants included in this analysis.  Table 1 shows baseline descriptive statistics by treatment group.
 
 ```{r, results='asis',tidy=TRUE, echo=FALSE}
-kable(tab1,caption="Table 1.  Descriptive statistics by treatment group.  Statistics given are N(%), mean±SD, or median (25th %ile, 75th %ile).  * denotes that the Mannn-Whitney test was used, and ** denotes that Fisher's exact test was used.")
+kable(tab1,caption="Table 1.  Descriptive statistics by treatment group.  Statistics given are N(%), mean±SD, or median (25th %ile, 75th %ile).  * denotes that the Wilcoxon test was used, and ** denotes that Fisher's exact test was used.") 
 ```
 \
+
 
 Descriptive statistics for beta cell function outcomes and CGM outcomes are shown in Table 2.
 ```{r, results='asis',tidy=TRUE, echo=FALSE}
-kable(tab2,caption="Table 2.  Descriptive statistics for beta cell function and CGM outcomes by treatment group.  Statistics given are N(%), mean±SD, or median (25th %ile, 75th %ile).  * denotes that the Mannn-Whitney test was used, and ** denotes that Fisher's exact test was used.")
+kable(tab2,caption="Table 2.  Descriptive statistics for beta cell function and CGM outcomes by treatment group.  Statistics given are N(%), mean±SD, or median (25th %ile, 75th %ile).  * denotes that the Wilcoxon test was used, and ** denotes that Fisher's exact test was used.")
 ```
 \
 
+Pearson correlation coefficients between beta cell function outcomes and CGM outcomes are shown in Table 2.
+```{r, results='asis',tidy=TRUE, echo=FALSE}
+kable(corr,caption="Table 3.  Correlation between beta cell function outcomes and CGM outcomes.")
+```
+\
