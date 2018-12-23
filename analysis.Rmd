@@ -13,8 +13,8 @@ library(knitr)
 
 # read in OGTT data
 source("C:\\Users\\pylell\\Documents\\GitHub\\Chan-ADA-2019\\CGMInHealthyControls_R_2018-12-21_1936.r")
-data <- data[c("subject_id","min_30_insulin","min_0_insulin","min_30_glucose","lab_ogtt_fasting",
-               "min_30_c_peptide","min_0_c_peptide")]
+#data <- data[c("subject_id","min_30_insulin","min_0_insulin","min_30_glucose","lab_ogtt_fasting",
+#               "min_30_c_peptide","min_0_c_peptide")]
 
 source("C:\\Users\\pylell\\Documents\\GitHub\\General-code\\temp_table1.r")
 source("C:\\Users\\pylell\\Documents\\GitHub\\General-code\\01_functions.r")
@@ -29,6 +29,44 @@ data$odi_cpep <- (1/data$min_0_c_peptide) * data$isi_cpep
 
 # also need the following
 # iAUCg, iAUCins/iAUCg, iAUCcpep/iAUCg, iAUCglucagon
+#glucose
+cols_gluc = c("min_minus_10_glucose","lab_ogtt_fasting",
+         "min_10_glucose","min_20_glucose","min_30_glucose",
+         "lab_ogtt_1_hour_glucose","min_90_glucose",
+         "lab_ogtt_2_hour_glucose","min_150_glucose",
+         "min_180_glucose")
+ogttdat <- data[,c(cols_gluc,"subject_id")]
+ogttdat <- ogttdat[which(rowSums(!is.na(ogttdat[,cols_gluc]))>=4),]
+ogttdat$iaucbase_glucose <- iAUC_glucose(ogttdat,ogttdat$lab_ogtt_fasting,type = "linear")
+data <- merge(data,ogttdat,by="subject_id",all.x=TRUE,all.y=TRUE)
+
+#insulin
+cols_ins = c("min_minus_10_insulin","min_0_insulin","min_10_insulin","min_20_insulin","min_30_insulin","min_60_insulin",
+             "min_90_insulin","min_120_insulin","min_150_insulin","min_180_insulin")
+ogttdat <- data[,c(cols_ins,"subject_id")]
+ogttdat <- ogttdat[which(rowSums(!is.na(ogttdat[,cols_ins]))>=4),]
+ogttdat$iaucbase_insulin <- iAUC_insulin(ogttdat,ogttdat$min_0_insulin,type = "linear")
+data <- merge(data,ogttdat,by="subject_id",all.x=TRUE,all.y=TRUE)
+
+#C-peptide
+cols_cpep = c("min_minus_10_c_peptide","min_0_c_peptide","min_10_c_peptide","min_20_c_peptide","min_30_c_peptide","min_60_c_peptide",
+             "min_90_c_peptide","min_120_c_peptide","min_150_c_peptide","min_180_c_peptide")
+ogttdat <- data[,c(cols_cpep,"subject_id")]
+ogttdat <- ogttdat[which(rowSums(!is.na(ogttdat[,cols_cpep]))>=4),]
+ogttdat$iaucbase_cpep <- iAUC_cpep(ogttdat,ogttdat$min_0_c_peptide,type = "linear")
+data <- merge(data,ogttdat,by="subject_id",all.x=TRUE,all.y=TRUE)
+
+# glucagon
+cols_glucagon = c("min_minus_10_glucagon","min_0_glucagon","min_10_glucagon","min_20_glucagon","min_30_glucagon","min_60_glucagon",
+              "min_90_glucagon","min_120_glucagon","min_150_glucagon","min_180_glucagon")
+ogttdat <- data[,c(cols_glucagon,"subject_id")]
+ogttdat <- ogttdat[which(rowSums(!is.na(ogttdat[,cols_glucagon]))>=4),]
+ogttdat <- ogttdat[which(!is.na(ogttdat[,"min_0_glucagon"])),]
+ogttdat$iaucbase_glucagon <- iAUC_glucagon(ogttdat,ogttdat$min_0_glucagon,type = "linear")
+data <- merge(data,ogttdat,by="subject_id",all.x=TRUE,all.y=TRUE)
+
+data$iAUCins_iAUC_gluc <- data$iaucbase_insulin/data$iaucbase_glucose
+data$iAUCcpep_iAUCgluc <- data$iaucbase_cpep/data$iaucbase_glucose
 
 # read in other variables from primary outcome analysis
 alldata <- read.csv(file = "H:\\Endocrinology\\Chan\\Chan CF CGM\\Repeat primary analysis\\Data\\export_tim.csv")
@@ -51,7 +89,7 @@ alldata <- merge(alldata,data,by="subject_id")
 alldata <- alldata[which(!is.na(alldata$odi) & alldata$odi != Inf),]
 #View(alldata[c("subject_id","group","min_30_insulin","min_0_insulin","min_30_glucose","lab_ogtt_fasting","min_30_c_peptide","min#_0_c_peptide","isi","isi_cpep","odi","odi_cpep")])
 
-ogttvars <- c("isi","isi_cpep","odi","odi_cpep")
+ogttvars <- c("isi","isi_cpep","odi","odi_cpep","iaucbase_glucose","iaucbase_insulin","iaucbase_cpep","iaucbase_glucagon","iAUCins_iAUC_gluc","iAUCcpep_iAUCgluc")
 cgmvars <- c("min_sensor","max_sensor","average_sensor","avg_auc","excursions_200","excursions_140_day",
              "excursions_200_day","excursions_over_140","percent_time_60","percent_time_70",
              "percent_time_spent_140","time_spent_60","time_spent_70","time_spent_200","time_spent_min_140",
@@ -92,6 +130,12 @@ label(alldata$time_spent_min_200)="Time spent >200"
 label(alldata$total_auc)="Total AUC"
 label(alldata$standard_deviation)="SD"
 label(alldata$mage)="MAGE"
+label(alldata$iaucbase_glucose)="iAUC glucose"
+label(alldata$iaucbase_insulin)="iAUC insulin"
+label(alldata$iaucbase_cpep)="iAUC C-peptide"
+label(alldata$iaucbase_glucagon)="iAUC glucagon"
+label(alldata$iAUCins_iAUC_gluc)="iAUC insulin/iAUC glucose"
+label(alldata$iAUCcpep_iAUCgluc)="iAUC C-peptide/iAUC glucose"
 
 npar <- nrow(alldata)
 
@@ -121,6 +165,8 @@ Participants who had both CGM data and OGTT data with 0, 30, and 120 minute time
 2) $ISI_{Cpep} = (Cpeptide_{30} - Cpeptide_{0}) / (Glucose_{30} - Glucose_{0})$
 3) $oDI = (1/Insulin_{0}) * ISI$
 4) $oDI_{Cpep} = (1/Cpeptide_{0}) * ISI_{Cpep}$
+
+Integrated AUC (iAUC) for glucose, insulin, C-peptide, and glucagon were calculated as the AUC with respect to the fasting value, using the trapezoidal method.
 
 The distributions of all variables were examined prior to analysis.  Groups were compared using ANOVA or the Wilcoxon test for continuous variables, and the chi-square or Fisher's exact test for categorical variables.  Pearson's correlation coefficient was used to test the association between beta cell function outcomes and CGM outcomes.
 
