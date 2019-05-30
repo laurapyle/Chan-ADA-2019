@@ -96,6 +96,11 @@ cgmvars <- c("min_sensor","max_sensor","average_sensor","avg_auc","excursions_20
              "time_spent_min_200","total_auc","standard_deviation","mage")
 tab1vars <- c("age", "race_ethnicity","gender","a1c","g_tube_feeds","fev1_percent","fvc","cf_pancreatic","tanner","first_bmiz")
 
+# make factors
+alldata$gender <- as.factor(alldata$gender)
+alldata$g_tube_feeds <- as.factor(alldata$g_tube_feeds)
+alldata$cf_pancreatic <- as.factor(alldata$cf_pancreatic)
+
 # labels
 label(alldata$age)="Age"
 label(alldata$race_ethnicity)="Race/ethnicity"
@@ -152,6 +157,8 @@ corr <- rcorr(as.matrix(alldata[, c(ogttvars,cgmvars)]), type = "pearson")
 corr <- flattenCorrMatrix(corr$r, corr$P)
 corr <- corr[corr$row %in% ogttvars & corr$column %in% cgmvars,]
 
+
+
 ```
 # Background
 
@@ -191,3 +198,15 @@ Pearson correlation coefficients between beta cell function outcomes and CGM out
 kable(corr,caption="Table 3.  Correlation between beta cell function outcomes and CGM outcomes.")
 ```
 \
+
+```{r, results='asis',tidy=TRUE, echo=FALSE}
+plot(alldata$odi_cpep,alldata$max_sensor,xlab="oDI Cpep",ylab="Max sensor (mg/dL)")
+abline(lm(alldata$max_sensor~alldata$odi_cpep))
+
+plot(alldata$odi_cpep,alldata$percent_time_spent_140,xlab="oDI Cpep",ylab="% time >140 mg/dL")
+abline(lm(alldata$percent_time_spent_140~alldata$odi_cpep))
+
+plot(alldata$odi_cpep,alldata$mage,xlab="oDI Cpep",ylab="MAGE (mg/dL)")
+abline(lm(alldata$mage~alldata$odi_cpep))
+
+```
